@@ -1,0 +1,15 @@
+{
+  "name": "@wll8/process-manager",
+  "version": "1.0.0",
+  "description": "A simple node subroutine manager.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./test/index.js"
+  },
+  "keywords": [
+    "process manager"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}
