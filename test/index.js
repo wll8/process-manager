@@ -10,7 +10,7 @@ cp.on(`stdout`, (data) => {
   console.log(`stdout`, data)
 })
 cp.on(`message`, (data) => {
-  console.log(`get`, data)
+  console.log(`get`, data, typeof(data))
 })
 setTimeout(() => {
   cp.send(`ppdata`)

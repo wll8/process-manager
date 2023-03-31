@@ -9,7 +9,7 @@ class ProcessManager {
     this.start()
   }
   send(data) {
-    this.#child.send(typeof(data) === `string` ? data : JSON.stringify(data, null, 2))
+    this.#child.send(data)
   }
   on(name, fn, {save = true} = {}) {
     save && this.#onList.push({
@@ -17,7 +17,7 @@ class ProcessManager {
       fn,
     })
     if(name === `message`) {
-      this.#child.on(`message`, (msg) => fn(typeof(msg) === `string` ? msg : JSON.parse(msg)))
+      this.#child.on(`message`, (msg) => fn(msg))
     }
     if(name === `stdout`) {
       this.#child.stdout.on(`data`, (data) => fn(this.delStyle(String(data))))

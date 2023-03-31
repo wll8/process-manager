@@ -8,5 +8,5 @@ setTimeout(() => {
 }, 5000);
 
 process.on(`message`, (msg) => {
-  console.log(`get`, msg)
+  console.log(`get`, msg, typeof(msg))
 })
