@@ -1,12 +1,7 @@
-setInterval(() => {
-  console.log(`\x1b[31mred\x1b[0m`)
-  process.send(`pdata`)
-}, 1000);
-
 setTimeout(() => {
   process.exit()
-}, 5000);
+}, 5 * 1e3);
 
 process.on(`message`, (msg) => {
-  console.log(`get`, msg, typeof(msg))
+  process.send(`${msg}-${process.ppid}-${process.pid}`)
 })

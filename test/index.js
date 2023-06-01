@@ -1,34 +1,42 @@
+const sleep = (time) => new Promise((resolve) => setTimeout(resolve, time))
+
 const {
   ProcessManager,
 } = require(`../`)
 
-const cp = new ProcessManager([`${__dirname}/child.js`])
-cp.on(`close`, () => {
-  console.log(`close`)
-})
-cp.on(`stdout`, (data) => {
-  console.log(`stdout`, data)
-})
-cp.on(`message`, (data) => {
-  console.log(`get`, data, typeof(data))
-})
-setTimeout(() => {
-  cp.send(`ppdata`)
-  cp.send(`text`)
-  cp.send({msg: `json`})
-}, 2000);
-
-setTimeout(() => {
+new Promise(async () => {
+  const cp = new ProcessManager([`${__dirname}/child.js`])
+  cp.on(`close`, () => {
+    console.warn(`The child process exited`)
+  })
+  cp.on(`message`, (data) => {
+    console.log(data)
+  })
+  setInterval(() => {
+    cp.send(`mgr`)
+  }, 1 * 1e3);
+  
+  console.log(`Reboot now, auto-restart should be inherited`)
+  await sleep(2 * 1e3)
+  cp.reboot(0)
+  
+  console.log(`Ended manually, should not restart automatically`)
+  await sleep(5 * 1e3)
   cp.kill()
-}, 10000);
-
-function killProcess(...arg) {
-  cp.kill()
-  setTimeout(() => {
+  
+  console.log(`Manually start, resume automatically restart, should not repeat first listen event`)
+  await sleep(5 * 1e3)
+  cp.start()
+  cp.start()
+  cp.start()
+  
+  function killProcess(...arg) {
+    console.log(`Close child process when parent process closes`)
+    cp.kill()
     process.exit()
-  }, 1000);
-}
-process.on(`SIGTERM`, killProcess)
-process.on(`SIGINT`, killProcess)
-process.on(`uncaughtException`, killProcess)
-process.on(`unhandledRejection`, killProcess)
+  }
+  process.on(`SIGTERM`, killProcess)
+  process.on(`SIGINT`, killProcess)
+  process.on(`uncaughtException`, killProcess)
+  process.on(`unhandledRejection`, killProcess)
+})

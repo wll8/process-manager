@@ -1,15 +1,20 @@
 class ProcessManager {
-  #child = undefined
-  #onList = []
-  #initArg = []
-  autoReStart = true
-  autoReStartTime = 1 * 1e3
+  #child = undefined // current process
+  #onList = [] // Store the list of listening events and restore them after the process restarts
+  #initArg = [] // Store initialization parameters
+  #isUserKill = false // Whether to manually terminate for the user
+  #isClose = true // Whether the process has exited
+  autoReStart = true // Whether to restart automatically
+  autoReStartTime = 1 * 1e3 // Automatic restart interval in milliseconds
   constructor(...arg) {
     this.#initArg = arg
     this.start()
   }
+  getChild() {
+    return this.#child
+  }
   send(data) {
-    this.#child.send(data)
+    this.#isClose === false && this.#child.send(data)
   }
   on(name, fn, {save = true} = {}) {
     save && this.#onList.push({
@@ -28,19 +33,20 @@ class ProcessManager {
     if(name === `close`) {
       this.#child.on(`close`, () => {
         fn()
-        this.autoReStart && this.reStart()
       })
     }
   }
   /**
-   * @param {string} code 
-   * SIGINT -- Request to end the foreground process
-   * SIGTERM -- Background process before the request ends
-   * SIGKILL -- Forcibly end the background process
+   * Close child process without restarting
+   * @param {string} code
+   * -
+   * - SIGINT -- Request to end the foreground process
+   * - SIGTERM -- Background process before the request ends
+   * - SIGKILL -- Forcibly end the background process
    */
   kill(code = `SIGTERM`) {
     this.#child.kill(code)
-    this.autoReStart = false
+    this.#isUserKill = true
   }
   /**
    * Get unstyled terminal output
@@ -54,9 +60,12 @@ class ProcessManager {
     return text
   }
   start() {
+    if(this.#isClose === false) {
+      return undefined
+    }
     const init = this.#initArg[0]
     const {
-      bin = `node`,
+      bin = process.argv[0],
       arg = [],
       autoReStart = this.autoReStart,
       autoReStartTime = this.autoReStartTime,
@@ -68,17 +77,33 @@ class ProcessManager {
     const child = spawn(bin, arg, {
       stdio: [null, null, null, `ipc`],
     })
+    this.#isClose = false
     this.#child = child
     this.#child.stdout.pipe(process.stdout)
     this.#child.stderr.pipe(process.stderr)
+    this.#child.on(`close`, () => {
+      this.#isClose = true
+      this.#isUserKill === false && this.autoReStart && this.start()
+      this.#isUserKill = false
+    })
+    this.#onList.forEach(({name, fn}) => {
+      this.on(name, fn, {save: false})
+    })
   }
-  reStart() {
-    setTimeout(() => {
-      this.start()
-      this.#onList.forEach(({name, fn}) => {
-        this.on(name, fn, {save: false})
-      })
-    }, this.autoReStartTime);
+  /**
+   * close the program and start it again
+   * @param {number} time
+   */
+  reboot(time = this.autoReStartTime) {
+    const autoReStartOld = this.autoReStart
+    this.autoReStart = false
+    this.#child.kill()
+    this.#child.on(`close`, () => {
+      setTimeout(() => {
+        this.start()
+        this.autoReStart = autoReStartOld
+      }, time);
+    })
   }
 }
 module.exports = {
