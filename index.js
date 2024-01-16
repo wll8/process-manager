@@ -69,6 +69,8 @@ class ProcessManager {
       arg = [],
       autoReStart = this.autoReStart,
       autoReStartTime = this.autoReStartTime,
+      stdout = process.stdout,
+      stderr = process.stderr,
     } = init.length ? {arg: init} : init
     this.autoReStart = autoReStart
     this.autoReStartTime = autoReStartTime
@@ -79,8 +81,8 @@ class ProcessManager {
     })
     this.#isClose = false
     this.#child = child
-    this.#child.stdout.pipe(process.stdout)
-    this.#child.stderr.pipe(process.stderr)
+    this.#child.stdout.pipe(stdout)
+    this.#child.stderr.pipe(stderr)
     this.#child.on(`close`, () => {
       this.#isClose = true
       this.#isUserKill === false && this.autoReStart && this.start()
