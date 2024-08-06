@@ -71,8 +71,8 @@ class ProcessManager {
       arg = [],
       autoReStart = this.autoReStart,
       autoReStartTime = this.autoReStartTime,
-      stdout = (chunk, encoding, cb) => cb(),
-      stderr = (chunk, encoding, cb) => cb(),
+      stdout = (chunk, encoding, cb) => { process.stdout.write(chunk), cb(null, chunk) },
+      stderr = (chunk, encoding, cb) => { process.stderr.write(chunk), cb(null, chunk) },
       spawnOption = {},
     } = init.length ? {arg: init} : init
     this.autoReStart = autoReStart

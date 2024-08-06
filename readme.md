@@ -21,8 +21,8 @@ option = {
   arg: [], // The second parameter of nodejs spawn
   autoReStart: true, // Automatically restart child processes
   autoReStartTime: 1000, // Restart interval, milliseconds
-  stdout: (chunk, encoding, cb) => cb(),
-  stderr: (chunk, encoding, cb) => cb(),
+  stdout = (chunk, encoding, cb) => { process.stdout.write(chunk), cb(null, chunk) },
+  stderr = (chunk, encoding, cb) => { process.stderr.write(chunk), cb(null, chunk) },
   spawnOption: {},
 };
 ```
