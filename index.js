@@ -1,3 +1,5 @@
+const { Transform } = require('stream');
+
 class ProcessManager {
   #child = undefined // current process
   #onList = [] // Store the list of listening events and restore them after the process restarts
@@ -69,20 +71,27 @@ class ProcessManager {
       arg = [],
       autoReStart = this.autoReStart,
       autoReStartTime = this.autoReStartTime,
-      stdout = process.stdout,
-      stderr = process.stderr,
+      stdout = (chunk, encoding, cb) => cb(),
+      stderr = (chunk, encoding, cb) => cb(),
+      spawnOption = {},
     } = init.length ? {arg: init} : init
     this.autoReStart = autoReStart
     this.autoReStartTime = autoReStartTime
+    
 
     const { spawn } = require(`child_process`)
     const child = spawn(bin, arg, {
       stdio: [null, null, null, `ipc`],
+      ...spawnOption,
     })
     this.#isClose = false
     this.#child = child
-    this.#child.stdout.pipe(stdout)
-    this.#child.stderr.pipe(stderr)
+    this.#child.stdout.pipe(new Transform({
+      transform: stdout,
+    }))
+    this.#child.stderr.pipe(new Transform({
+      transform: stderr,
+    }))
     this.#child.on(`close`, () => {
       this.#isClose = true
       this.#isUserKill === false && this.autoReStart && this.start()
