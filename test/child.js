@@ -4,4 +4,6 @@ setTimeout(() => {
 
 process.on(`message`, (msg) => {
   process.send(`${msg}-${process.ppid}-${process.pid}`)
+  process.stdout.write(`stdout`)
+  process.stderr.write(`stderr`)
 })

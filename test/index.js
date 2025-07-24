@@ -9,6 +9,12 @@ new Promise(async () => {
   cp.on(`close`, () => {
     console.warn(`The child process exited`)
   })
+  cp.on(`stdout`, (data) => {
+    console.log(`stdout`, data)
+  })
+  cp.on(`stderr`, (data) => {
+    console.log(`stderr`, data)
+  })
   cp.on(`message`, (data) => {
     console.log(data)
   })
