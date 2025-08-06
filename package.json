@@ -4,12 +4,18 @@
   "description": "A simple node subroutine manager.",
   "main": "index.js",
   "scripts": {
-    "test": "node ./test/index.js"
+    "test": "node ./test/index.js",
+    "bug": "node bug.js",
+    "no-bug": "node ./node_modules/http-server/bin/http-server . -c-1 -p 10086",
+    "get": "autocannon -a 2000 http://127.0.0.1:10086/"
   },
   "keywords": [
     "process manager"
   ],
   "author": "",
   "license": "MIT",
-  "dependencies": {}
+  "devDependencies": {
+    "autocannon": "^8.0.0",
+    "http-server": "^14.1.1"
+  }
 }
