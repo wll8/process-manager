@@ -53,11 +53,11 @@ export class ProcessManager implements ProcessManagerInterface {
         break
       case 'stdout':
         this.child.stdout?.removeAllListeners('data')
-        this.child.stdout?.on('data', (data) => fn(this.delStyle(String(data))))
+        this.child.stdout?.on('data', (data) => fn(data))
         break
       case 'stderr':
         this.child.stderr?.removeAllListeners('data')
-        this.child.stderr?.on('data', (data) => fn(this.delStyle(String(data))))
+        this.child.stderr?.on('data', (data) => fn(data))
         break
       case 'close':
         this.child.removeAllListeners('close')
@@ -130,7 +130,11 @@ export class ProcessManager implements ProcessManagerInterface {
 
     const child = spawn(bin, arg, {
       stdio: [null, null, null, 'ipc'],
-      ...spawnOption
+      env: {
+        FORCE_COLOR: '1',
+        ...process.env,
+      },
+      ...spawnOption,
     })
 
     this.isClose = false
@@ -172,12 +176,12 @@ export class ProcessManager implements ProcessManagerInterface {
     // 监听子进程输出
     this.child.stdout?.on('data', (data: Buffer) => {
       process.stdout.write(data)
-      this.child?.emit('stdout', this.delStyle(String(data)))
+      this.child?.emit('stdout', data)
     })
 
     this.child.stderr?.on('data', (data: Buffer) => {
       process.stderr.write(data)
-      this.child?.emit('stderr', this.delStyle(String(data)))
+      this.child?.emit('stderr', data)
     })
 
     // 设置默认的 close 监听器
