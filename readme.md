@@ -45,26 +45,19 @@ pm.on('message', (msg) => {
 pm.send({ type: 'greeting', data: 'Hello child!' })
 ```
 
-### JavaScript Files (Auto-detection)
+### Array Syntax
 
 ```typescript
-// Automatically detects .js/.ts/.mjs files and uses node
-const pm = new ProcessManager({
-  arg: ['script.js', 'arg1', 'arg2']
-})
-
-// Or use the convenient static method
-const pm = ProcessManager.runJS('script.js', 'arg1', 'arg2')
-
-// Array syntax also auto-detects JS files
+// Array mode omits the 'node' command prefix
+// Equivalent to: node script.js arg1 arg2
 const pm = new ProcessManager(['script.js', 'arg1', 'arg2'])
-```
 
-### Array Configuration
+// Can also use Node.js command line options
+// Equivalent to: node -e "console.log('Hello')"
+const pm = new ProcessManager(['-e', 'console.log("Hello")'])
 
-```typescript
-// Alternative syntax for simple cases
-const pm = new ProcessManager(['node', '-e', 'console.log("Hello!")'])
+// Equivalent to: node --version
+const pm = new ProcessManager(['--version'])
 ```
 
 ## API Reference
@@ -88,13 +81,6 @@ new ProcessManager(options: ProcessManagerOptions | string[])
 | `spawnOption` | `SpawnOptions` | `{}` | Node.js spawn options |
 
 ### Static Methods
-
-#### `ProcessManager.runJS(scriptPath: string, ...args: string[]): ProcessManager`
-Convenient method to run JavaScript files without specifying the `node` binary.
-
-```typescript
-const pm = ProcessManager.runJS('app.js', '--port', '3000')
-```
 
 ### Methods
 

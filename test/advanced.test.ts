@@ -134,4 +134,48 @@ describe('ProcessManager 高级功能测试', () => {
     expect(pm.getChild()).toBeTruthy()
     expect(pm).toBeInstanceOf(ProcessManager)
   })
+
+  it('应该能够使用数组语法运行真实 JavaScript 文件', async () => {
+    pm = new ProcessManager([
+      'test/child.js',
+      '--test-arg'
+    ])
+
+    return new Promise<void>((resolve) => {
+      let stdoutReceived = false
+      let argReceived = false
+
+      pm.on('stdout', (data) => {
+        const output = data.toString().trim()
+        if (output === 'Hello from child process') {
+          stdoutReceived = true
+        }
+        if (output === 'Test argument received') {
+          argReceived = true
+        }
+      })
+
+      pm.on('close', () => {
+        expect(stdoutReceived).toBe(true)
+        expect(argReceived).toBe(true)
+        resolve()
+      })
+    })
+  })
+
+  it('应该能够使用数组语法与真实 JavaScript 文件通信', async () => {
+    pm = new ProcessManager(['test/child.js'])
+
+    return new Promise<void>((resolve) => {
+      pm.on('message', (msg) => {
+        expect(msg).toBe('Child response: {"test":"data"}')
+        resolve()
+      })
+
+      // 等待进程启动后发送消息
+      setTimeout(() => {
+        pm.send({ test: 'data' })
+      }, 100)
+    })
+  })
 })

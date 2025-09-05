@@ -70,4 +70,83 @@ describe('ProcessManager 基本测试', () => {
       }, 100)
     })
   })
+
+  it('应该能够使用数组语法运行 JavaScript 文件', () => {
+    // 数组模式省略了前面的 node，等价于 node test/child.js
+    pm = new ProcessManager([
+      'test/child.js'
+    ])
+    
+    expect(pm).toBeInstanceOf(ProcessManager)
+    expect(pm.getChild()).toBeTruthy()
+    expect(typeof pm.getChild()?.pid).toBe('number')
+  })
+
+  it('应该能够使用数组语法运行 Node.js 命令行参数', () => {
+    // 数组模式省略了前面的 node，等价于 node -e "xxx"
+    pm = new ProcessManager([
+      '-e',
+      'setTimeout(() => process.exit(0), 100)'
+    ])
+    
+    expect(pm).toBeInstanceOf(ProcessManager)
+    expect(pm.getChild()).toBeTruthy()
+    expect(typeof pm.getChild()?.pid).toBe('number')
+  })
+
+  it('应该能够使用数组语法运行 JavaScript 文件并传递参数', () => {
+    // 数组模式省略了前面的 node，等价于 node test/child.js --test-arg
+    pm = new ProcessManager([
+      'test/child.js',
+      '--test-arg'
+    ])
+    
+    expect(pm).toBeInstanceOf(ProcessManager)
+    expect(pm.getChild()).toBeTruthy()
+    expect(typeof pm.getChild()?.pid).toBe('number')
+  })
+
+  it('应该能够使用数组语法监听输出', async () => {
+    // 数组模式省略了前面的 node，等价于 node -e "xxx"
+    pm = new ProcessManager([
+      '-e',
+      'console.log("Array syntax works!"); setTimeout(() => process.exit(0), 100)'
+    ])
+    
+    pm.autoReStart = false
+
+    return new Promise<void>((resolve) => {
+      pm.on('stdout', (data) => {
+        if (data.trim() === 'Array syntax works!') {
+          resolve()
+        }
+      })
+    })
+  })
+
+  it('应该能够使用数组语法处理进程通信', async () => {
+    // 数组模式省略了前面的 node，等价于 node -e "xxx"
+    pm = new ProcessManager([
+      '-e',
+      `
+        process.on('message', (msg) => {
+          process.send('array syntax: ' + msg)
+          setTimeout(() => process.exit(0), 100)
+        })
+      `
+    ])
+    
+    pm.autoReStart = false
+
+    return new Promise<void>((resolve) => {
+      pm.on('message', (msg) => {
+        expect(msg).toBe('array syntax: test')
+        resolve()
+      })
+      
+      setTimeout(() => {
+        pm.send('test')
+      }, 100)
+    })
+  })
 })

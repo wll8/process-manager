@@ -45,26 +45,19 @@ pm.on('message', (msg) => {
 pm.send({ type: 'greeting', data: '你好，子进程!' })
 ```
 
-### JavaScript 文件自动识别
+### 数组语法
 
 ```typescript
-// 自动检测 .js/.ts/.mjs 文件并使用 node 运行
-const pm = new ProcessManager({
-  arg: ['script.js', 'arg1', 'arg2']
-})
-
-// 或者使用便捷的静态方法
-const pm = ProcessManager.runJS('script.js', 'arg1', 'arg2')
-
-// 数组语法也会自动识别 JS 文件
+// 数组模式省略了前面的 node 命令，直接传递参数
+// 等价于 node script.js arg1 arg2
 const pm = new ProcessManager(['script.js', 'arg1', 'arg2'])
-```
 
-### 数组配置方式
+// 也可以使用 Node.js 命令行参数
+// 等价于 node -e "console.log('Hello')"
+const pm = new ProcessManager(['-e', 'console.log("Hello")'])
 
-```typescript
-// 简单场景的替代语法
-const pm = new ProcessManager(['node', '-e', 'console.log("Hello!")'])
+// 等价于 node --version
+const pm = new ProcessManager(['--version'])
 ```
 
 ## API 参考
@@ -88,13 +81,6 @@ new ProcessManager(options: ProcessManagerOptions | string[])
 | `spawnOption` | `SpawnOptions` | `{}` | Node.js spawn 选项 |
 
 ### 静态方法
-
-#### `ProcessManager.runJS(scriptPath: string, ...args: string[]): ProcessManager`
-运行 JavaScript 文件的便捷方法，无需指定 `node` 二进制文件。
-
-```typescript
-const pm = ProcessManager.runJS('app.js', '--port', '3000')
-```
 
 ### 方法
 
