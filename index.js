@@ -8,6 +8,8 @@ class ProcessManager {
   #isClose = true // Whether the process has exited
   autoReStart = true // Whether to restart automatically
   autoReStartTime = 1 * 1e3 // Automatic restart interval in milliseconds
+  #stdoutTransform = null
+  #stderrTransform = null
   constructor(...arg) {
     this.#initArg = arg
     this.start()
@@ -16,24 +18,43 @@ class ProcessManager {
     return this.#child
   }
   send(data) {
-    this.#isClose === false && this.#child.send(data)
+    if (this.#isClose === false && this.#child && this.#child.connected) {
+      try {
+        this.#child.send(data)
+      } catch (error) {
+        // 忽略发送错误，避免未处理的异常
+        console.warn('Failed to send message to child process:', error.message)
+      }
+    }
   }
   on(name, fn, {save = true} = {}) {
     save && this.#onList.push({
       name,
       fn,
     })
-    if(name === `message`) {
+    // 先移除所有旧的监听器，防止重复绑定
+    if (name === `message`) {
+      this.#child.removeAllListeners(`message`)
       this.#child.on(`message`, (msg) => fn(msg))
     }
-    if(name === `stdout`) {
+    if (name === `stdout`) {
+      this.#child.stdout.removeAllListeners(`data`)
       this.#child.stdout.on(`data`, (data) => fn(this.delStyle(String(data))))
     }
-    if(name === `stderr`) {
+    if (name === `stderr`) {
+      this.#child.stderr.removeAllListeners(`data`)
       this.#child.stderr.on(`data`, (data) => fn(this.delStyle(String(data))))
     }
-    if(name === `close`) {
+    if (name === `close`) {
+      this.#child.removeAllListeners(`close`)
       this.#child.on(`close`, () => {
+        this.#isClose = true
+        if (this.#isUserKill === false && this.autoReStart) {
+          setTimeout(() => {
+            this.start()
+          }, this.autoReStartTime)
+        }
+        this.#isUserKill = false
         fn()
       })
     }
@@ -65,6 +86,17 @@ class ProcessManager {
     if(this.#isClose === false) {
       return undefined
     }
+    
+    // 先解除旧的 pipe 并销毁 Transform 流
+    if (this.#child && this.#child.stdout && this.#stdoutTransform) {
+      this.#child.stdout.unpipe(this.#stdoutTransform)
+      this.#stdoutTransform.destroy()
+    }
+    if (this.#child && this.#child.stderr && this.#stderrTransform) {
+      this.#child.stderr.unpipe(this.#stderrTransform)
+      this.#stderrTransform.destroy()
+    }
+
     const init = this.#initArg[0]
     const {
       bin = process.argv[0],
@@ -77,7 +109,6 @@ class ProcessManager {
     } = init.length ? {arg: init} : init
     this.autoReStart = autoReStart
     this.autoReStartTime = autoReStartTime
-    
 
     const { spawn } = require(`child_process`)
     const child = spawn(bin, arg, {
@@ -86,17 +117,70 @@ class ProcessManager {
     })
     this.#isClose = false
     this.#child = child
-    this.#child.stdout.pipe(new Transform({
-      transform: stdout,
-    }))
-    this.#child.stderr.pipe(new Transform({
-      transform: stderr,
-    }))
-    this.#child.on(`close`, () => {
-      this.#isClose = true
-      this.#isUserKill === false && this.autoReStart && this.start()
-      this.#isUserKill = false
+
+    // 新建 Transform 并保存引用
+    this.#stdoutTransform = new Transform({ 
+      transform: (chunk, encoding, cb) => {
+        try {
+          // 直接输出到控制台
+          process.stdout.write(chunk)
+          // 调用自定义的 stdout 处理函数
+          stdout(chunk, encoding, cb)
+        } catch (err) {
+          cb(err)
+        }
+      },
+      flush: (cb) => cb()
     })
+    this.#stderrTransform = new Transform({ 
+      transform: (chunk, encoding, cb) => {
+        try {
+          // 直接输出到控制台
+          process.stderr.write(chunk)
+          // 调用自定义的 stderr 处理函数
+          stderr(chunk, encoding, cb)
+        } catch (err) {
+          cb(err)
+        }
+      },
+      flush: (cb) => cb()
+    })
+    
+    // 设置错误处理
+    this.#stdoutTransform.on('error', (err) => {
+      console.error('stdout transform error:', err)
+    })
+    this.#stderrTransform.on('error', (err) => {
+      console.error('stderr transform error:', err)
+    })
+    
+    // 直接监听子进程的输出，不通过 Transform 流
+    this.#child.stdout.on('data', (data) => {
+      process.stdout.write(data)
+      // 触发 stdout 事件
+      this.#child.emit('stdout', this.delStyle(String(data)))
+    })
+    
+    this.#child.stderr.on('data', (data) => {
+      process.stderr.write(data)
+      // 触发 stderr 事件
+      this.#child.emit('stderr', this.delStyle(String(data)))
+    })
+
+    // 设置默认的 close 监听器（如果没有用户自定义的 close 监听器）
+    if (!this.#onList.find(item => item.name === 'close')) {
+      this.#child.on(`close`, () => {
+        this.#isClose = true
+        if (this.#isUserKill === false && this.autoReStart) {
+          setTimeout(() => {
+            this.start()
+          }, this.autoReStartTime)
+        }
+        this.#isUserKill = false
+      })
+    }
+    
+    // 恢复之前保存的事件监听器
     this.#onList.forEach(({name, fn}) => {
       this.on(name, fn, {save: false})
     })
