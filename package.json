@@ -2,14 +2,47 @@
   "name": "@wll8/process-manager",
   "version": "1.0.4",
   "description": "A simple node subroutine manager.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "node ./test/index.js"
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "dev": "ts-node src/index.ts",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "demo": "npx ts-node demo.ts",
+    "simple-test": "node simple-test.js"
   },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
   "keywords": [
-    "process manager"
+    "process manager",
+    "child process",
+    "subprocess",
+    "process",
+    "manager",
+    "typescript",
+    "node"
   ],
   "author": "",
   "license": "MIT",
-  "dependencies": {}
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@vitest/ui": "^3.2.4",
+    "rimraf": "^5.0.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
 }
