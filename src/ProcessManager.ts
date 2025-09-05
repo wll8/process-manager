@@ -25,6 +25,12 @@ export class ProcessManager implements ProcessManagerInterface {
     this.start()
   }
 
+  static runJS(scriptPath: string, ...args: string[]): ProcessManager {
+    return new ProcessManager({
+      arg: [scriptPath, ...args]
+    })
+  }
+
   getChild(): ChildProcess | undefined {
     return this.child
   }
@@ -108,6 +114,14 @@ export class ProcessManager implements ProcessManagerInterface {
     const options: ProcessManagerOptions = Array.isArray(init) 
       ? { arg: init } 
       : init
+
+    // 如果第一个参数是 .js/.ts/.mjs 文件，自动使用 node
+    if (options.arg && options.arg.length > 0 && !options.bin) {
+      const firstArg = options.arg[0]
+      if (/\.(js|ts|mjs)$/.test(firstArg)) {
+        options.bin = process.argv[0] // 确保使用 node
+      }
+    }
 
     const {
       bin = process.argv[0],
